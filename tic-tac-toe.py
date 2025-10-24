@@ -1,8 +1,12 @@
 from copy import deepcopy
+from datetime import datetime
+import math
 
 State = tuple[int, list[list[int | None]]]  # Tuple of player (whose turn it is),
                                             # and board
 Action = tuple[int, int]  # Where to place the player's piece
+MinMaxReturnValue = tuple[float, Action]
+
 
 class Game:
     def initial_state(self) -> State:
@@ -75,3 +79,65 @@ class Game:
                 print('The game is a draw')
         else:
             print(f'It is P{self.to_move(state)+1}\'s turn to move')
+
+
+
+def max_value(game: Game, state: State, alpha: int, beta: int) -> MinMaxReturnValue:
+    if game.is_terminal(state):
+        return [game.utility(state, 0), None]
+        
+    v = -math.inf
+    move = -math.inf
+
+    for a in game.actions(state):
+        v2, a2 = min_value(game, game.result(state, a), alpha, beta)
+        if v2 > v:
+            v = v2
+            move = a
+            alpha = max(alpha, v)
+        if (v >= beta):
+            return [v, move] 
+    return [v, move]
+        
+
+def min_value(game: Game, state: State, alpha: int, beta: int) -> MinMaxReturnValue:
+    if game.is_terminal(state):
+        return [game.utility(state, 0), None]
+    v = math.inf 
+    move = math.inf
+
+    for a in game.actions(state):
+        v2, a2 = max_value(game, game.result(state, a), alpha, beta)
+        if v2 < v:
+            v = v2
+            move = a
+            beta = min(beta, v)
+        if (v <= alpha):
+            return [v, move] 
+    return [v, move]
+
+def alpha_beta_search(game: Game, state: State) -> Action | None:
+    player = game.to_move(state)
+    if player == 0:
+        value, move = max_value(game, state, -math.inf, math.inf)
+        return move
+    else:
+        value, move = min_value(game, state, -math.inf, math.inf)
+        return move
+
+
+
+game = Game()
+state = game.initial_state()
+game.print(state)
+startTime = datetime.now()
+while not game.is_terminal(state):
+    player = game.to_move(state)
+    action = alpha_beta_search(game, state) # The player whose turn it is
+                                         # is the MAX player
+    print("Runtime for action since start-time:", datetime.now()-startTime)
+    print(f'P{player+1}\'s action: {action}')
+    assert action is not None
+    state = game.result(state, action)
+    game.print(state)
+
